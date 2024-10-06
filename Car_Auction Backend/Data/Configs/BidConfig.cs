@@ -21,6 +21,13 @@ namespace Car_Auction_Backend.Data.Configs
 				.WithMany(n => n.Bids)
 				.HasForeignKey(n => n.AdminId)
 				.HasConstraintName("FK_Bids_Admins");
+
+			builder.HasOne(b => b.Car)
+				.WithOne(c => c.Bid)
+				.HasForeignKey<Bid>(b => b.CarId)
+				.HasConstraintName("FK_Bids_Cars");
+
+
 		}
 	}
 }

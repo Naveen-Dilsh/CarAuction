@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Car_Auction_Backend.Models
 {
@@ -17,7 +18,8 @@ namespace Car_Auction_Backend.Models
 
 		public string AStatus { get; set; }
 
-		public virtual ICollection<Bid> Bids { get; set; }
-
+		[JsonIgnore]
+		public virtual ICollection<Bid>? Bids { get; set; }
+		
 	}
 }

@@ -39,7 +39,7 @@ namespace Car_Auction_Backend.Controllers
 			_context.Cars.Add(car);
 			await _context.SaveChangesAsync();
 
-			return CreatedAtAction(nameof(GetCar), new { id = car.CarId }, car);
+			return CreatedAtAction(nameof(GetCar), new { id = car.CId }, car);
 		}
 
 		/// <summary>
@@ -91,7 +91,7 @@ namespace Car_Auction_Backend.Controllers
 		[ProducesResponseType(StatusCodes.Status404NotFound)]
 		public async Task<IActionResult> UpdateCar(int id, Car car)
 		{
-			if (id != car.CarId)
+			if (id != car.CId)
 			{
 				return BadRequest();
 			}
@@ -119,7 +119,7 @@ namespace Car_Auction_Backend.Controllers
 
 		private bool CarExists(int id)
 		{
-			return _context.Cars.Any(e => e.CarId == id);
+			return _context.Cars.Any(e => e.CId == id);
 		}
 	}
 }

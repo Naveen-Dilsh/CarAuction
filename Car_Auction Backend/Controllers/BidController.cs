@@ -120,5 +120,26 @@ namespace Car_Auction_Backend.Controllers
 				.Include(b => b.Admin)
 				.ToListAsync();
 		}
+		[HttpGet("{bidId}/CAr")]
+		[ProducesResponseType(typeof(Car), StatusCodes.Status200OK)]
+		[ProducesResponseType(StatusCodes.Status404NotFound)]
+		public async Task<ActionResult<Car>> GetCarForBid(int bidId)
+		{
+			var bid = await _context.Bids
+				.Include(b => b.Car)
+				.FirstOrDefaultAsync(b => b.BidId == bidId);
+
+			if (bid == null)
+			{
+				return NotFound("Bid not found.");
+			}
+
+			if (bid.Car == null)
+			{
+				return NotFound("Associated admin not found.");
+			}
+
+			return bid.Car;
+		}
 	}
 }

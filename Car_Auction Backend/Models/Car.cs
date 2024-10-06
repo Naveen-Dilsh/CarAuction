@@ -1,10 +1,11 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace Car_Auction_Backend.Models
 {
 	public class Car
 	{
-		public int CarId { get; set; }
+		public int CId { get; set; }
 
 		public string Model { get; set; }
 
@@ -17,6 +18,9 @@ namespace Car_Auction_Backend.Models
 		public string ImageUrl { get; set; }
 
 		public string CStatus { get; set; } = "Unsold";
+
+		[JsonIgnore]
+		public virtual Bid? Bid { get; set; }
 
 	}
 }

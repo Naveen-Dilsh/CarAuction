@@ -4,6 +4,7 @@ using Car_Auction_Backend.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Car_Auction_Backend.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241006070752_addtbl")]
+    partial class addtbl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,31 +59,6 @@ namespace Car_Auction_Backend.Migrations
                     b.HasKey("AId");
 
                     b.ToTable("Admins", (string)null);
-                });
-
-            modelBuilder.Entity("Car_Auction_Backend.Models.AuctionHistory", b =>
-                {
-                    b.Property<int>("HId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("HId"));
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("FinalBidAmount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("Submissions_Id")
-                        .HasColumnType("int");
-
-                    b.HasKey("HId");
-
-                    b.HasIndex("Submissions_Id")
-                        .IsUnique();
-
-                    b.ToTable("Auction_History", (string)null);
                 });
 
             modelBuilder.Entity("Car_Auction_Backend.Models.Bid", b =>
@@ -187,32 +165,6 @@ namespace Car_Auction_Backend.Migrations
                     b.ToTable("Cars", (string)null);
                 });
 
-            modelBuilder.Entity("Car_Auction_Backend.Models.Notification", b =>
-                {
-                    b.Property<int>("NId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("NId"));
-
-                    b.Property<string>("NMessage")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("NType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("UserssId")
-                        .HasColumnType("int");
-
-                    b.HasKey("NId");
-
-                    b.HasIndex("UserssId");
-
-                    b.ToTable("Notification", (string)null);
-                });
-
             modelBuilder.Entity("Car_Auction_Backend.Models.Payment", b =>
                 {
                     b.Property<int>("PId")
@@ -284,18 +236,6 @@ namespace Car_Auction_Backend.Migrations
                     b.ToTable("Users", (string)null);
                 });
 
-            modelBuilder.Entity("Car_Auction_Backend.Models.AuctionHistory", b =>
-                {
-                    b.HasOne("Car_Auction_Backend.Models.Bid_Sub", "Bid_Sub")
-                        .WithOne("AuctionHistory")
-                        .HasForeignKey("Car_Auction_Backend.Models.AuctionHistory", "Submissions_Id")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_Auction_BidSub");
-
-                    b.Navigation("Bid_Sub");
-                });
-
             modelBuilder.Entity("Car_Auction_Backend.Models.Bid", b =>
                 {
                     b.HasOne("Car_Auction_Backend.Models.Admin", "Admin")
@@ -338,18 +278,6 @@ namespace Car_Auction_Backend.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("Car_Auction_Backend.Models.Notification", b =>
-                {
-                    b.HasOne("Car_Auction_Backend.Models.User", "User")
-                        .WithMany("Notifications")
-                        .HasForeignKey("UserssId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("FK_Notification_User");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("Car_Auction_Backend.Models.Payment", b =>
                 {
                     b.HasOne("Car_Auction_Backend.Models.Bid_Sub", "Bid_Sub")
@@ -383,9 +311,6 @@ namespace Car_Auction_Backend.Migrations
 
             modelBuilder.Entity("Car_Auction_Backend.Models.Bid_Sub", b =>
                 {
-                    b.Navigation("AuctionHistory")
-                        .IsRequired();
-
                     b.Navigation("Payment");
                 });
 
@@ -397,8 +322,6 @@ namespace Car_Auction_Backend.Migrations
             modelBuilder.Entity("Car_Auction_Backend.Models.User", b =>
                 {
                     b.Navigation("Bid_Subs");
-
-                    b.Navigation("Notifications");
 
                     b.Navigation("Payments");
                 });

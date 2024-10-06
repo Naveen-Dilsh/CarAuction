@@ -9,9 +9,9 @@ namespace Car_Auction_Backend.Data.Configs
 		public void Configure(EntityTypeBuilder<Car> builder)
 		{
 			builder.ToTable("Cars");
-			builder.HasKey(x => x.CarId);
+			builder.HasKey(x => x.CId);
 
-			builder.Property(x => x.CarId).UseIdentityColumn();
+			builder.Property(x => x.CId).UseIdentityColumn();
 
 			builder.Property(n => n.Model).IsRequired();
 			builder.Property(n => n.Brand).IsRequired();
