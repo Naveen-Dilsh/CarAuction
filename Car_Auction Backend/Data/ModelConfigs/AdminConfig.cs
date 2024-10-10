@@ -15,6 +15,7 @@ namespace Car_Auction_Backend.Data.Configs
 
 			builder.Property(n => n.AName).IsRequired();
 			builder.Property(n => n.APassword).IsRequired();
+			builder.Property(n => n.ARole).HasDefaultValue("Admin");
 			builder.Property(n => n.AEmail).IsRequired();
 			builder.Property(n => n.IsMainAdmin).HasDefaultValue(false);
 			builder.Property(n => n.AStatus).HasDefaultValue("Pending");

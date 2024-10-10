@@ -13,6 +13,8 @@ namespace Car_Auction_Backend.Models
 
 		public string UPassword { get; set; }
 
+		public String URole {  get; set; }
+
 		public string? Address { get; set; }
 
 		// Contact number with validation (only digits allowed)
@@ -28,6 +30,7 @@ namespace Car_Auction_Backend.Models
 		public virtual ICollection<Payment>? Payments { get; set; }
 
 		//Relationship with Notification M : 1
-		public virtual ICollection<Notification> Notifications { get; set;}
+		[JsonIgnore]
+		public virtual ICollection<Notification>? Notifications { get; set;}
 	}
 }
