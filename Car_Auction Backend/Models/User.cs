@@ -17,6 +17,10 @@ namespace Car_Auction_Backend.Models
 
 		public string? Address { get; set; }
 
+		public string? EmailVerificationToken { get; set; }
+
+		public bool IsEmailVerified { get; set; } = false; // Add email verification status
+
 		// Contact number with validation (only digits allowed)
 		[RegularExpression(@"^\d{10,15}$", ErrorMessage = "Contact number must be between 10 and 15 digits and contain only numbers.")]
 		public string? C_Number { get; set; }

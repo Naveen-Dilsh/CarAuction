@@ -1,6 +1,10 @@
 ﻿using Car_Auction_Backend.DTOs;
 using Car_Auction_Backend.Services;
 using Microsoft.AspNetCore.Mvc;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using Microsoft.IdentityModel.Tokens;
+using Car_Auction_Backend.Data;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -13,27 +17,74 @@ public class AuthController : ControllerBase
 		_authService = authService;
 	}
 
-	[HttpPost("login-user")]
-	public IActionResult LoginUser([FromBody] UserDto userDto)
+
+	//-------------------------------------------------Register-----------------------------------------//
+
+	[HttpPost("register")]
+	public async Task<IActionResult> Register([FromBody] AuthDto userDto)
 	{
-		var user = _authService.FindUser(userDto.UName, userDto.UPassword);
-
-		if (user == null)
-			return Unauthorized(new { Message = "Invalid credentials" });
-
-		var token = _authService.GenerateJwtTokenForUser(user);
-		return Ok(new { Token = token });
+		try
+		{
+			await _authService.RegisterUser(userDto);
+			if (userDto.URole.ToLower() == "user")
+			{
+				return Ok(new { Message = "Registration successful! Please check your email to verify your account." });
+			}
+			else if (userDto.URole.ToLower() == "admin")
+			{
+				return Ok(new { Message = "Admin registration successful! We will inform you once your account is approved." });
+			}
+			else
+			{
+				return BadRequest(new { Message = "Invalid role specified." });
+			}
+		}
+		catch (Exception ex)
+		{
+			return BadRequest(new { Message = ex.Message });
+		}
 	}
 
-	[HttpPost("login-admin")]
-	public IActionResult LoginAdmin([FromBody] AdminDto adminDto)
+	//-----------------------------------------------VerifyEmail-------------------------------------------------//
+	
+	[HttpGet("verify-email")]
+	public async Task<IActionResult> VerifyEmail([FromQuery] string token)
 	{
-		var admin = _authService.FindAdmin(adminDto.AName, adminDto.APassword);
-
-		if (admin == null)
-			return Unauthorized(new { Message = "Invalid credentials" });
-
-		var token = _authService.GenerateJwtTokenForAdmin(admin);
-		return Ok(new { Token = token });
+		var result = await _authService.VerifyEmail(token);
+		if (result)
+		{
+			return Ok(new { Message = "Email verified successfully." });
+		}
+		return BadRequest(new { Message = "Invalid verification token." });
 	}
+
+	//--------------------------------------------Login---------------------------------------------------//
+	[HttpPost("login")]
+	public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
+	{
+		try
+		{
+			var token = await _authService.LoginUser(loginDto.Username, loginDto.Password);
+			return Ok(new { Token = token });
+		}
+		catch (Exception ex)
+		{
+			return BadRequest(new { Message = ex.Message });
+		}
+	}
+
+
+
+	[HttpPost("check-main-admin")]
+	public IActionResult CheckMainAdmin([FromBody] TokenDto tokenDto)
+	{
+		var isMainAdmin = _authService.IsMainAdminToken(tokenDto.Token);
+		return Ok(new { isMainAdmin = isMainAdmin });
+	}
+
+
+
+
+
+
 }

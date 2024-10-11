@@ -16,6 +16,7 @@ namespace Car_Auction_Backend.Controllers
 			_context = context;
 		}
 
+
 		// POST: api/Admin
 		[HttpPost]
 		public async Task<ActionResult<User>> PostUser(User user)
