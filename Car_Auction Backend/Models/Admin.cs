@@ -10,6 +10,8 @@ namespace Car_Auction_Backend.Models
 
 		public string AName { get; set; }
 
+		public string ARole { get; set; }	
+
 		public string APassword { get; set; }
 
 		public string AEmail { get; set; }
