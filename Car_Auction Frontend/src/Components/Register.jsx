@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const RegistrationForm = () => {
+  const navigate = useNavigate(); // Initialize useNavigate
   const [formData, setFormData] = useState({
     UName: '',
     UEmail: '',
@@ -30,6 +32,10 @@ const RegistrationForm = () => {
     } catch (err) {
       setError(err.response ? err.response.data.Message : 'Something went wrong.');
     }
+  };
+
+  const handleLoginRedirect = () => {
+    navigate('/login'); // Navigate to the login component
   };
 
   return (
@@ -88,6 +94,10 @@ const RegistrationForm = () => {
         </div>
         <button type="submit">Register</button>
       </form>
+      
+      <button type="button" onClick={handleLoginRedirect}>
+          Already have an account? Login
+      </button>
     </div>
   );
 };

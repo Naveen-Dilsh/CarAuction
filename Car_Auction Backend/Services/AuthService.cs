@@ -120,7 +120,7 @@ namespace Car_Auction_Backend.Services
 
 		//------------------------------------------login---------------------------------------------------------------------------------------------------------------------------------------------------//
 
-		public async Task<string> LoginUser(string username, string password)
+		public async Task<(string accessToken, string refreshToken)> LoginUser(string username, string password)
 		{
 			var user = await _context.users.FirstOrDefaultAsync(u => u.UName == username);
 			if (user != null && BCrypt.Net.BCrypt.Verify(password, user.UPassword))
@@ -129,7 +129,7 @@ namespace Car_Auction_Backend.Services
 				{
 					throw new Exception("Please verify your email before logging in.");
 				}
-				return GenerateJwtToken(new { Id = user.UId, Name = user.UName, Role = "User" });
+				return GenerateTokens(new { Id = user.UId, Name = user.UName, Role = "User" });
 			}
 
 			var admin = await _context.Admins.FirstOrDefaultAsync(a => a.AName == username);
@@ -139,11 +139,177 @@ namespace Car_Auction_Backend.Services
 				{
 					throw new Exception("Your admin account is pending approval.");
 				}
-				return GenerateJwtToken(admin);
+				return GenerateTokens(admin);
 			}
 
 			throw new Exception("Invalid username or password.");
 		}
+	
+
+	// New method to generate both access and refresh tokens
+	private (string accessToken, string refreshToken) GenerateTokens(object user)
+	{
+		var accessToken = GenerateAccessToken(user);
+		var refreshToken = GenerateRefreshToken(user);
+		return (accessToken, refreshToken);
+	}
+
+		// Modified to generate access token
+		private string GenerateAccessToken(object user)
+		{
+			var tokenHandler = new JwtSecurityTokenHandler();
+			var key = Encoding.ASCII.GetBytes(_jwtSettings.Secret);
+			var claims = new List<Claim>();
+
+			if (user is Admin admin)
+			{
+				claims.Add(new Claim(ClaimTypes.NameIdentifier, admin.AId.ToString()));
+				claims.Add(new Claim(ClaimTypes.Name, admin.AName));
+				claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+				claims.Add(new Claim("IsMainAdmin", admin.IsMainAdmin.ToString().ToLower()));
+			}
+			else if (user is User regularUser)
+			{
+				claims.Add(new Claim(ClaimTypes.NameIdentifier, regularUser.UId.ToString()));
+				claims.Add(new Claim(ClaimTypes.Name, regularUser.UName));
+				claims.Add(new Claim(ClaimTypes.Role, "User"));
+			}
+
+			var tokenDescriptor = new SecurityTokenDescriptor
+			{
+				Subject = new ClaimsIdentity(claims),
+				Expires = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationMinutes),
+				SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+			};
+			var token = tokenHandler.CreateToken(tokenDescriptor);
+			return tokenHandler.WriteToken(token);
+		}
+
+		// New method to generate refresh token
+		private string GenerateRefreshToken(object user)
+		{
+			var tokenHandler = new JwtSecurityTokenHandler();
+			var key = Encoding.ASCII.GetBytes(_jwtSettings.Secret);
+			var claims = new List<Claim>();
+
+			// Safely get properties
+			var idProperty = user.GetType().GetProperty("Id");
+			var nameProperty = user.GetType().GetProperty("Name");
+			var roleProperty = user.GetType().GetProperty("Role");
+			var isMainAdminProperty = user.GetType().GetProperty("IsMainAdmin");
+
+			if (idProperty != null)
+				claims.Add(new Claim(ClaimTypes.NameIdentifier, idProperty.GetValue(user)?.ToString() ?? ""));
+
+			if (nameProperty != null)
+				claims.Add(new Claim(ClaimTypes.Name, nameProperty.GetValue(user)?.ToString() ?? ""));
+
+			if (roleProperty != null)
+				claims.Add(new Claim(ClaimTypes.Role, roleProperty.GetValue(user)?.ToString() ?? ""));
+
+			// Add IsMainAdmin claim if the property exists
+			if (isMainAdminProperty != null)
+				claims.Add(new Claim("IsMainAdmin", isMainAdminProperty.GetValue(user)?.ToString()?.ToLower() ?? "false"));
+
+			// Add the tokenType claim for refresh token
+			claims.Add(new Claim("tokenType", "refresh"));
+
+			var tokenDescriptor = new SecurityTokenDescriptor
+			{
+				Subject = new ClaimsIdentity(claims),
+				Expires = DateTime.UtcNow.AddDays(7), // Refresh token valid for 7 days
+				SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+			};
+			var token = tokenHandler.CreateToken(tokenDescriptor);
+			return tokenHandler.WriteToken(token);
+		}
+
+
+		// New method to refresh tokens
+		public (string accessToken, string refreshToken) RefreshTokens(string refreshToken)
+	{
+		var tokenHandler = new JwtSecurityTokenHandler();
+		var key = Encoding.ASCII.GetBytes(_jwtSettings.Secret);
+
+		try
+		{
+			var tokenValidationParameters = new TokenValidationParameters
+			{
+				ValidateIssuerSigningKey = true,
+				IssuerSigningKey = new SymmetricSecurityKey(key),
+				ValidateIssuer = false,
+				ValidateAudience = false,
+				ValidateLifetime = true,
+				ClockSkew = TimeSpan.Zero
+			};
+
+			// Validate the refresh token
+			ClaimsPrincipal principal = tokenHandler.ValidateToken(refreshToken, tokenValidationParameters, out SecurityToken validatedToken);
+
+			// Check if it's actually a refresh token
+			if (principal.FindFirst("tokenType")?.Value != "refresh")
+			{
+				throw new SecurityTokenException("Invalid token type");
+			}
+
+			// Extract claims
+			var userId = principal.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			var username = principal.FindFirst(ClaimTypes.Name)?.Value;
+			var role = principal.FindFirst(ClaimTypes.Role)?.Value;
+
+			// Generate new tokens
+			return GenerateTokens(new { Id = userId, Name = username, Role = role });
+		}
+		catch (Exception)
+		{
+			throw new SecurityTokenException("Invalid refresh token");
+		}
+	}
+
+
+
+
+		public bool IsMainAdminToken(string token)
+		{
+			try
+			{
+				var tokenHandler = new JwtSecurityTokenHandler();
+				var key = Encoding.ASCII.GetBytes(_jwtSettings.Secret);
+
+				var validationParameters = new TokenValidationParameters
+				{
+					ValidateIssuerSigningKey = true,
+					IssuerSigningKey = new SymmetricSecurityKey(key),
+					ValidateIssuer = false,
+					ValidateAudience = false,
+					ValidateLifetime = true,
+					ClockSkew = TimeSpan.Zero
+				};
+
+				var principal = tokenHandler.ValidateToken(token, validationParameters, out SecurityToken validatedToken);
+
+				// Check the role claim
+				var roleClaim = principal.FindFirst(ClaimTypes.Role);
+				if (roleClaim == null || roleClaim.Value != "Admin")
+				{
+					return false;
+				}
+
+				// Check the IsMainAdmin claim
+				var isMainAdminClaim = principal.FindFirst("IsMainAdmin");
+				return isMainAdminClaim != null && bool.TryParse(isMainAdminClaim.Value, out bool isMainAdmin) && isMainAdmin;
+			}
+			catch (Exception ex)
+			{
+				// Log the exception
+				Console.WriteLine($"Error in IsMainAdminToken: {ex.Message}");
+				return false;
+			}
+		}
+
+
+
+
 
 
 
@@ -186,52 +352,7 @@ namespace Car_Auction_Backend.Services
 			return tokenHandler.WriteToken(token);
 		}
 
-		public bool IsMainAdminToken(string token)
-		{
-			try
-			{
-				var tokenHandler = new JwtSecurityTokenHandler();
-				var key = Encoding.ASCII.GetBytes(_jwtSettings.Secret);
-
-				tokenHandler.ValidateToken(token, new TokenValidationParameters
-				{
-					ValidateIssuerSigningKey = true,
-					IssuerSigningKey = new SymmetricSecurityKey(key),
-					ValidateIssuer = false,
-					ValidateAudience = false,
-					ClockSkew = TimeSpan.Zero
-				}, out SecurityToken validatedToken);
-
-				var jwtToken = (JwtSecurityToken)validatedToken;
-
-				// Logging claims for debugging
-				foreach (var claim in jwtToken.Claims)
-				{
-					Console.WriteLine($"Claim: {claim.Type} - Value: {claim.Value}");
-				}
-
-				var roleClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == "role");
-				var isMainAdminClaim = jwtToken.Claims.FirstOrDefault(x => x.Type == "IsMainAdmin");
-
-				if (roleClaim == null || isMainAdminClaim == null)
-				{
-					Console.WriteLine("Role or IsMainAdmin claim is missing.");
-					return false;
-				}
-
-				var role = roleClaim.Value;
-				var isMainAdmin = isMainAdminClaim.Value;
-				Console.WriteLine("All good");
-				return role == "Admin" && string.Equals(isMainAdmin, "true", StringComparison.OrdinalIgnoreCase);
-				
-
-
-			}
-			catch
-			{
-				return false;
-			}
-		}
+		
 
 	}
 }
