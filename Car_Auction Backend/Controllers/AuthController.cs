@@ -47,7 +47,7 @@ public class AuthController : ControllerBase
 	}
 
 	//-----------------------------------------------VerifyEmail-------------------------------------------------//
-	
+
 	[HttpGet("verify-email")]
 	public async Task<IActionResult> VerifyEmail([FromQuery] string token)
 	{
@@ -87,7 +87,17 @@ public class AuthController : ControllerBase
 				Expires = DateTimeOffset.UtcNow.AddDays(7)
 			});
 
-			return Ok(new { AccessToken = accessToken, RefreshToken = refreshToken, Message = "Login successful" });
+			// Decode the access token to get the claims
+			var handler = new JwtSecurityTokenHandler();
+			var jsonToken = handler.ReadToken(accessToken) as JwtSecurityToken;
+
+			return Ok(new
+			{
+				AccessToken = accessToken,
+				RefreshToken = refreshToken,
+				Message = "Login successful",
+				Claims = jsonToken?.Claims.Select(c => new { c.Type, c.Value })
+			});
 		}
 		catch (Exception ex)
 		{
@@ -95,6 +105,8 @@ public class AuthController : ControllerBase
 		}
 	}
 
+
+	//------------------------------------------------------------------------------Get Refresh Token------------------------------------------------------------------------//
 
 	// New endpoint to refresh tokens
 	[HttpPost("refresh-token")]
@@ -137,6 +149,43 @@ public class AuthController : ControllerBase
 
 
 
+	//-----------------------------------------------------------------------------------------------Get Refresh token Acording to the Other refresh token---------------------------------------------------------//
+
+	[HttpPost("refresh-tokenss")]
+	public IActionResult RefreshTokenNEW([FromBody] RefreshTokenRequest refreshRequest)
+	{
+		if (string.IsNullOrEmpty(refreshRequest.RefreshToken))
+		{
+			return BadRequest(new { Message = "Refresh token is required" });
+		}
+
+		try
+		{
+			var (newAccessToken, newRefreshToken) = _authService.RefreshTokens(refreshRequest.RefreshToken);
+
+			// Decode the access token to get the claims
+			var handler = new JwtSecurityTokenHandler();
+			var jsonToken = handler.ReadToken(newAccessToken) as JwtSecurityToken;
+
+			return Ok(new
+			{
+				AccessToken = newAccessToken,
+				RefreshToken = newRefreshToken,
+				Message = "Tokens refreshed successfully",
+				Claims = jsonToken?.Claims.Select(c => new { c.Type, c.Value })
+			});
+		}
+		catch (SecurityTokenException ex)
+		{
+			return Unauthorized(new { Message = ex.Message });
+		}
+	}
+	
+
+
+
+	//--------------------------------------------------------------Check Main admin -----------------------------------------------------------------//
+
 	[HttpPost("check-main-admin")]
 	public IActionResult CheckMainAdmin([FromBody] TokenDto tokenDto)
 	{
@@ -175,6 +224,8 @@ public class AuthController : ControllerBase
 		}
 	}
 
+	//----------------------------------------------------------------Chech Admins----------------------------------------------------------------------//
+
 	[HttpPost("check-admin")]
 	public IActionResult CheckAdmin([FromBody] TokenDto tokenDto)
 	{
@@ -188,20 +239,11 @@ public class AuthController : ControllerBase
 				return BadRequest(new { Message = "Invalid token" });
 			}
 
-			var roleClaim = jsonToken.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Role) ??
-							jsonToken.Claims.FirstOrDefault(claim => claim.Type == "role");
-			var nameClaim = jsonToken.Claims.FirstOrDefault(claim => claim.Type == ClaimTypes.Name) ??
-							jsonToken.Claims.FirstOrDefault(claim => claim.Type == "unique_name");
+			var roleClaim = jsonToken.Claims.FirstOrDefault(claim => claim.Type.ToLower() == "role");
+			var isMainAdminClaim = jsonToken.Claims.FirstOrDefault(claim => claim.Type == "IsMainAdmin");
+			var nameClaim = jsonToken.Claims.FirstOrDefault(claim => claim.Type == "unique_name");
 
-			var isAdmin = roleClaim?.Value == "Admin";
-
-			// Log or output detailed information about the token
-			Console.WriteLine($"Token payload: {jsonToken.Payload}");
-			Console.WriteLine($"Total claims: {jsonToken.Claims.Count()}");
-			foreach (var claim in jsonToken.Claims)
-			{
-				Console.WriteLine($"Claim: {claim.Type} = {claim.Value}");
-			}
+			var isAdmin = roleClaim?.Value.ToLower() == "admin";
 
 			return Ok(new
 			{
@@ -218,7 +260,6 @@ public class AuthController : ControllerBase
 			return BadRequest(new { Message = ex.Message, StackTrace = ex.StackTrace });
 		}
 	}
-
 
 
 }
