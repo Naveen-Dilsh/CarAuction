@@ -1,20 +1,24 @@
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Home from './Components/Home';
-import Register from './Components/Register';
-import VerifyEmail from './Components/VerifyEmail';
+import logo from './logo.svg';
+import './App.css';
 
 function App() {
   return (
-    <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<Home />} /> {/* Home route */}
-          <Route path="/register" element={<Register />} /> {/* Registration route */}
-          <Route path="/verify-email" element={<VerifyEmail />} /> {/* Email verification route */}
-        </Routes>
-      </div>
-    </Router>
+    <div className="App">
+      <header className="App-header">
+        <img src={logo} className="App-logo" alt="logo" />
+        <p>
+          Edit <code>src/App.js</code> and save to reload.
+        </p>
+        <a
+          className="App-link"
+          href="https://reactjs.org"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Learn React
+        </a>
+      </header>
+    </div>
   );
 }
 
